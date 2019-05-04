@@ -1,115 +1,19 @@
-
-//exemplo for
-let n = 5;
-
-for(let i =0; i<=10; i++){
-
-    console.log(`${i} X ${n} = ${i*n}`);
-}
-
-// exemplo Function
-function calc(x1,x2,operador){
-
-    return eval(`${x1} ${operador} ${x2}`);
-
-}
-
-let result = calc(1,2,"+");
-
-console.log(result);
-
-//exemplo arrow funcition
-
-let calc2 = (x1,x2,operador)=>{
-
-    return eval(`${x1} ${operador} ${x2}`);
-
-}
-
-let result2 = calc2(1,2,"+");
-
-console.log(result2);
-
-//exemplo de evento
-
-window.addEventListener('focus', event => {
-
-    console.log('focus');
-
-});
-
-document.addEventListener('click', event => {
-
-        console.log('click');
-});
-
-//exemplo pegando data
-
-let agora = new Date();
-
-console.log(agora.toLocaleDateString("pr-BR"));
-
-
-//exemplo de forEach com array
-
-let guitarras = ['ibanez', 'gibson', 'menphys', 1, false, modelos=[1,2,3]]
-
-guitarras.forEach(function(value, index){
-
-    console.log(index,  value);
-});
-
-
-//exemplo de Classe antiga
-
-let celular = function(){
-
-    this.cor = "prata";
-    this.ligar = function()
-    {
-    console.log("uma ligacao")
-    return "ligando";
-    }
-}
-
-//instanciando um objeto
-
-let objeto = new celular();
-
-console.log(objeto.ligar())
-
-
-//exemplo Classe novo java
-
-class celular2{
-
-    constructor(){
-        this.cor = "prata";
-    }
-
-    ligar(){
-    console.log("uma ligacao")
-    }
-}
-
-let objeto2 = new celular();
-
-console.log(objeto2.cor)
-
 //Criando uma Classe com interacao na calculadora hcode
-
 class CalcController{
 
     //metodo construtor eh o resonsavel por instaciar os metodos e atributos da classe
     constructor(){
+    this.operation = [];    
     this._locale = "pt-BR";
-    this._displayCalcEl = document.querySelector("#display")
-    this._dateEl = document.querySelector("#data")
-    this._timeEl = document.querySelector("#hora")
+    this._displayCalcEl = document.querySelector("#display");
+    this._dateEl = document.querySelector("#data");
+    this._timeEl = document.querySelector("#hora");
     this._currentDate;
+    this.execBtn();
     this.initialize();
     this.initButtonsEvents();
-    this.addEventListenerAll();   
+    this.addEventListenerAll();
+       
     }
 
 
@@ -125,12 +29,115 @@ class CalcController{
     //os paramentros sao definidos para chamar um elemento, um ou mais eventos e uma funcao
     addEventListenerAll(element, events, fn){
         //split cria separadores para criacao de array's
-        events.split(" ").forEach(event =>{
+        events.split(' ').forEach(event => {
 
             element.addEventListener(event, fn, false);
 
         });    
     }
+
+    clearAll(){
+        this._operation = [];
+    }
+
+    clearEntry(){
+        this._operation.pop();
+    }
+
+    getLastOperation(){
+
+        return this._operation[this._operation.length - 1];
+    }
+
+    setLastOperation(value){
+        this._operation[this._operation.length - 1] = value;
+    }
+
+    isOperation(){
+        //Busca se um caracter dentro desse array foi digitado e retorna booleano
+        return(['+','-','*','%','/'].indexOf(value)> -1);
+    }
+
+    addOperation(value){
+
+        if(isNaN(this.getLastOperation())){
+           //String
+            if(this.isOperation(value)){
+                this.setLastOperation(value);
+            } else if(isNaN(value)){
+
+            } else{
+                this._operation.push(value)
+            }
+            
+        }
+        else {
+           //Number 
+           let newValue = this.getLastOperation().toString() + value.toString();     
+           this.setLastOperation(parseInt(newValue));
+        }
+        
+    }
+
+    setError(){
+
+        this.displayCalc = "ERROR";
+    }
+
+    execBtn(value){
+        //switch retorna as operacoes que devem ser calculadas
+        switch(value){
+
+            case 'ac':
+                this.clearAll();
+                break;
+            case 'ce':
+                this.clearEntry();
+                break;
+            case 'porcento':
+                this.addOperation('%');
+                break;
+            case 'divisao':
+                this.addOperation('/');
+                break;    
+            case 'multiplicacao':
+                this.addOperation('*');
+                break; 
+            case 'subtracao':
+                this.addOperation('-');
+                break; 
+            case 'soma':
+                this.addOperation('+'); 
+                break; 
+            case 'igual':
+                break; 
+            case 'ponto':
+                this.addOperation('.');
+                break;
+
+            case '0': 
+            case '1':    
+            case '2':
+            case '3':
+            case '4':    
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                this.addOperation(parseInt(value));
+                break;
+            case undefined:
+                console.log('deu muito ruim');
+                break;
+            default:
+                this.setError();
+                break;
+
+        }
+
+    }
+
 
 
     initButtonsEvents(){
@@ -140,8 +147,9 @@ class CalcController{
             
             this.addEventListenerAll(btn, "click drag", e => {
 
-                console.log(btn.className.baseVal.replace("btn-", ""));
-
+                let textbtn = btn.className.baseVal.replace("btn-", "");
+                console.log(textbtn);
+                this.execBtn(textbtn);
             });
 
             this.addEventListenerAll(btn, "mouseup mousedown mouseover", e => {
@@ -156,39 +164,39 @@ class CalcController{
 
     setDisplayDateTime(){
         //metodo usa a funcao nativa Date para passar a data atual
-        this.displaDate = this.currenteDate.toLocaleDateString(this._locale, {
+        this.displayDate = this.currenteDate.toLocaleDateString(this._locale, {
             day: "2-digit",
             month: "long",
             year: "numeric"
         });
-        this.displaTime = this.currenteDate.toLocaleTimeString(this._locale);
+        this.displayTime = this.currenteDate.toLocaleTimeString(this._locale);
     }
 
     //get e set sao utilizados para caputurar e mostrar informacoes da tela do usuario
 
-    get displaTime(){
+    get displayTime(){
         //metodo usa a funcao nativa Date para passar a hora atual
         return this._timeEl.innerHTML;
     }
     
-    set displaTime(value){
+    set displayTime(value){
         return this._timeEl.innerHTML = value;
     }
 
-    get displaDate(){
+    get displayDate(){
         return this._dateEl.innerHTML;
     }
 
-    set displaDate(value){
+    set displayDate(value){
         return this._dateEl.innerHTML = value;
     }
 
-    get displaCalc(){
-        return this.displayCalcEl.innerHTML;
+    get displayCalc(){
+        return this._displayCalcEl.innerHTML;
     }
 
-    set displaCalc(value){
-        this.displayCalcEl.innerHTML = value;
+    set displayCalc(value){
+        return this._displayCalcEl.innerHTML = value;
     }
 
     get currenteDate(){
@@ -196,7 +204,7 @@ class CalcController{
     }
 
     set currenteDate(value){
-        this._currentDate = value;
+        return this._currentDate = value;
     }
 
 
