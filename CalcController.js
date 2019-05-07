@@ -3,16 +3,17 @@ class CalcController{
 
     //metodo construtor eh o resonsavel por instaciar os metodos e atributos da classe
     constructor(){
-    this.operation = [];    
+    this._operation = [];    
     this._locale = "pt-BR";
     this._displayCalcEl = document.querySelector("#display");
     this._dateEl = document.querySelector("#data");
     this._timeEl = document.querySelector("#hora");
     this._currentDate;
-    this.execBtn();
+    
     this.initialize();
     this.initButtonsEvents();
-    this.addEventListenerAll();
+    this.addOperation();
+    this.isOperation();
        
     }
 
@@ -55,7 +56,7 @@ class CalcController{
 
     isOperation(){
         //Busca se um caracter dentro desse array foi digitado e retorna booleano
-        return(['+','-','*','%','/'].indexOf(value)> -1);
+        return ['+','-','*','%','/'].indexOf(value)> -1;
     }
 
     addOperation(value){
@@ -73,8 +74,16 @@ class CalcController{
         }
         else {
            //Number 
-           let newValue = this.getLastOperation().toString() + value.toString();     
-           this.setLastOperation(parseInt(newValue));
+            if(this.isOperation(value)){
+
+                this._operation.push(value);
+
+            }else{
+                let newValue = this.getLastOperation().toString() + value.toString();     
+                this.setLastOperation(parseInt(newValue));
+            }    
+
+
         }
         
     }
@@ -137,7 +146,6 @@ class CalcController{
         }
 
     }
-
 
 
     initButtonsEvents(){
