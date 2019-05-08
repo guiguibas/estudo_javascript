@@ -3,6 +3,10 @@ class CalcController{
 
     //metodo construtor eh o resonsavel por instaciar os metodos e atributos da classe
     constructor(){
+
+    this._lastOperator = '';
+    this._lastNumber = '';
+
     this._operation = [];    
     this._locale = "pt-BR";
     this._displayCalcEl = document.querySelector("#display");
@@ -25,6 +29,8 @@ class CalcController{
         setInterval(()=>{
             this.setDisplayDateTime();
         },1000)
+
+        this.setLastNumberToDisplay();
     }
     //essa funcao foi criada para atender diversos tipos de eventos para elementos destinados
     //os paramentros sao definidos para chamar um elemento, um ou mais eventos e uma funcao
@@ -39,10 +45,16 @@ class CalcController{
 
     clearAll(){
         this._operation = [];
+        this._lastNumber = '';
+        this._lastOperator = '';
+        this.setLastNumberToDisplay();
+        
     }
 
     clearEntry(){
+        //pop retira o ultimo elemento de uma array
         this._operation.pop();
+        this.setLastNumberToDisplay();
     }
 
     getLastOperation(){
@@ -54,9 +66,112 @@ class CalcController{
         this._operation[this._operation.length - 1] = value;
     }
 
-    isOperation(){
+    isOperation(value){
         //Busca se um caracter dentro desse array foi digitado e retorna booleano
         return ['+','-','*','%','/'].indexOf(value)> -1;
+    }
+
+    pushOperation(value){
+
+        this._operation.push(value)
+
+        if (this._operation.length > 3){
+            this.calc();
+        }
+    }
+
+    getLastItem(isOperator = true){
+
+        let lastItem;
+
+        for (let i = this._operation.length-1; i >=0; i-- ){
+            //o ! eh o not aqui ou seja, se o numero nao for um operador ele entra no if
+            if(this.isOperation(this._operation[i]) == isOperator){
+                this._lastNumber = this._operation[i];
+                break;
+            }   
+        }
+
+        // criado para manter a ultima operacao caso nao seja passado nada
+        if(!lastItem){
+            //if ternario,
+            //          condicao      se sim              se nao    
+            lastItem = (isOperator) ? this._lastOperator : this._lastNumber;
+        }
+
+        return lastItem;
+    }
+
+    getResult(){
+        //o join eh o contrario do split, e eval convert string para operacoes matematicas(nessa caso)
+        return  eval(this._operation.join(""));
+       
+    }
+
+    calc(){
+        let last = '';
+
+        this._lastOperator = this.getLastItem();
+
+    
+        if(this._operation.length < 3){
+
+            let firstItem = this._operation[0];
+            this._operation = [firstItem, this._lastOperator, this._lastNumber];
+
+        }
+        console.log('ultimo num ' + this._lastNumber)
+        console.log('ultimo oper ' + this._lastOperator)
+
+        if(this._operation.length > 3){
+            //retira o ultimo digito para realizar calculo em pares 
+            last = this._operation.pop();
+            this._lastNumber = this.getResult();
+
+        }else if(this._operation.length == 3){
+            
+            this._lastNumber = this.getResult(false);
+
+        }
+        
+        let result = this.getResult();
+
+        if (last == '%'){
+            // se a operacao sobrescreve a variaval pode utilizar esse script
+            result /= 100;
+            this._operation = [result]    
+        }else {
+            //retorna o resultado do par, e o ultimo digito do usuario
+            this._operation = [result];
+
+            if(last) this._operation.push(last);
+        }
+        
+        console.log(this._operation);
+        this.setLastNumberToDisplay();
+    }
+
+    setLastNumberToDisplay(){
+
+        let lastNumber = this.getLastItem(false);
+
+        //caso o valor seja undefined ele troca por 0
+        if(!lastNumber) lastNumber = 0
+
+        this.displayCalc = lastNumber
+
+    }
+
+    addDot(){
+        let lastOperation = this.getLastOperation
+
+        if (this.isOperation(lastOperation) || !lastOperation){
+            this.pushOperation('0.');
+        }else {
+            this.setLastOperation(lastOperation.toString() + '.');
+        }
+
+        this.setLastNumberToDisplay();
     }
 
     addOperation(value){
@@ -65,10 +180,9 @@ class CalcController{
            //String
             if(this.isOperation(value)){
                 this.setLastOperation(value);
-            } else if(isNaN(value)){
-
             } else{
-                this._operation.push(value)
+                this.pushOperation(value)
+                this.setLastNumberToDisplay();
             }
             
         }
@@ -76,11 +190,14 @@ class CalcController{
            //Number 
             if(this.isOperation(value)){
 
-                this._operation.push(value);
+                this.pushOperation(value);
 
             }else{
                 let newValue = this.getLastOperation().toString() + value.toString();     
-                this.setLastOperation(parseInt(newValue));
+                this.setLastOperation(parseFloat(newValue));
+
+                this.setLastNumberToDisplay();
+
             }    
 
 
@@ -95,7 +212,7 @@ class CalcController{
 
     execBtn(value){
         //switch retorna as operacoes que devem ser calculadas
-        switch(value){
+        switch(value){  
 
             case 'ac':
                 this.clearAll();
@@ -119,9 +236,10 @@ class CalcController{
                 this.addOperation('+'); 
                 break; 
             case 'igual':
+                this.calc();
                 break; 
             case 'ponto':
-                this.addOperation('.');
+                this.addDot();
                 break;
 
             case '0': 
@@ -156,7 +274,7 @@ class CalcController{
             this.addEventListenerAll(btn, "click drag", e => {
 
                 let textbtn = btn.className.baseVal.replace("btn-", "");
-                console.log(textbtn);
+               
                 this.execBtn(textbtn);
             });
 
