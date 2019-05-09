@@ -3,6 +3,9 @@ class CalcController{
 
     //metodo construtor eh o resonsavel por instaciar os metodos e atributos da classe
     constructor(){
+    
+    this._audio = new Audio('click.mp3');
+    this._audioOnOff = false;    
 
     this._lastOperator = '';
     this._lastNumber = '';
@@ -18,10 +21,11 @@ class CalcController{
     this.initButtonsEvents();
     this.addOperation();
     this.isOperation();
+    this.initKeyboard();
        
     }
 
-
+    //responsavel tarefas de inicializacao do projeto
     initialize(){
 
         this.setDisplayDateTime();
@@ -31,7 +35,119 @@ class CalcController{
         },1000)
 
         this.setLastNumberToDisplay();
+        this.pastrFromClipboard();
+
+        //realiza for nos elementos HTML buscando duplo click no botao ac
+        document.querySelectorAll('.btn-ac').forEach(btn=>{
+
+            btn.addEventListener('dblclick', e=>{
+                this.toogleAudio();
+            })
+
+        })
     }
+
+    //faz a leitura de negacao para inicializacao do audio
+    toogleAudio(){
+
+        this._audioOnOff = !this._audioOnOff
+    }
+    //realiza a execucao do audio
+    playAudio(){
+
+        if(this._audioOnOff){
+            //forca o retorno do audio ao inicio 
+            this._audio.currentTime = 0;
+
+            this._audio.play();
+        }
+
+    }
+
+    pastrFromClipboard(){
+
+        document.addEventListener('paste', e=>{
+            //captura o envendo paste e armazena o valor passado em text    
+            let text = e.clipboardData.getData('Text');
+            this.displayCalc = parseFloat(text);
+
+        });
+
+    }
+
+    copyToClipboard(){
+        //criando input para receber o texto copiado
+        let input = document.createElement('input');
+        //o valor do input eh passdo para o displaycalc
+        input.value = this.displayCalc;
+        //para que o HTML entenda que esse elemento existe ele precisa ser incluindo no body
+        document.body.appendChild(input);
+        input.select();
+        //comamando para executar evento
+        document.execCommand('Copy');
+        //faz com que o elemento nao apareca para o usuario durante a execucao 
+        input.remove();
+    }
+    //add comandos de teclado
+    initKeyboard(){
+
+        document.addEventListener('keyup' , e=>{
+            //executando audio
+            this.playAudio();
+            
+            console.log(e.key);
+
+            switch(e.key){  
+
+                case 'Escape':
+                    this.clearAll();
+                    break;
+                case 'Backspace':
+                    this.clearEntry();
+                    break;
+                case '%':
+                case '+':
+                case '-':
+                case '/':
+                case '*':    
+                    this.addOperation(e.key); 
+                    break; 
+                case '=':
+                case 'Enter':
+                    this.calc();
+                    break; 
+                case '.':
+                case ',':
+                    this.addDot();
+                    break;
+                case '0': 
+                case '1':    
+                case '2':
+                case '3':
+                case '4':    
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    this.addOperation(parseInt(e.key));
+                    break;
+                case undefined:
+                    console.log('deu muito ruim');
+                    break; 
+                case 'c':
+                    //caso o ctrl tenha sido apertado tbm (ctrl+c)
+                    if(e.ctrlKey) this.copyToClipboard();
+                    break;
+            }
+
+
+        });
+
+    }
+
+
+
     //essa funcao foi criada para atender diversos tipos de eventos para elementos destinados
     //os paramentros sao definidos para chamar um elemento, um ou mais eventos e uma funcao
     addEventListenerAll(element, events, fn){
@@ -42,7 +158,7 @@ class CalcController{
 
         });    
     }
-
+    //limpa tudo
     clearAll(){
         this._operation = [];
         this._lastNumber = '';
@@ -50,43 +166,42 @@ class CalcController{
         this.setLastNumberToDisplay();
         
     }
-
+    //limpa ultimo comando passado
     clearEntry(){
         //pop retira o ultimo elemento de uma array
         this._operation.pop();
         this.setLastNumberToDisplay();
     }
-
+    //pega o ultima posicao de um array    
     getLastOperation(){
 
         return this._operation[this._operation.length - 1];
     }
-
+    //passa a ultima posicao de um array e passa como value
     setLastOperation(value){
         this._operation[this._operation.length - 1] = value;
     }
-
+    //confirma se um o valor passado esta entre as operacoes
     isOperation(value){
         //Busca se um caracter dentro desse array foi digitado e retorna booleano
         return ['+','-','*','%','/'].indexOf(value)> -1;
     }
-
+    
     pushOperation(value){
-
+        //o push server para incluir mais um componente no final do array
         this._operation.push(value)
 
         if (this._operation.length > 3){
             this.calc();
         }
     }
-
-    getLastItem(isOperator = true){
+    //verifica se o ultimo item, e tem como parametro que a operacao esta sendo sendo passada como true
+    getLastItem(isOperation = true){
 
         let lastItem;
 
         for (let i = this._operation.length-1; i >=0; i-- ){
-            //o ! eh o not aqui ou seja, se o numero nao for um operador ele entra no if
-            if(this.isOperation(this._operation[i]) == isOperator){
+            if(this.isOperation(this._operation[i]) == isOperation){
                 this._lastNumber = this._operation[i];
                 break;
             }   
@@ -96,18 +211,25 @@ class CalcController{
         if(!lastItem){
             //if ternario,
             //          condicao      se sim              se nao    
-            lastItem = (isOperator) ? this._lastOperator : this._lastNumber;
+            lastItem = (isOperation) ? this._lastOperator : this._lastNumber;
         }
 
         return lastItem;
     }
-
+    //faz o caculo final 
     getResult(){
         //o join eh o contrario do split, e eval convert string para operacoes matematicas(nessa caso)
-        return  eval(this._operation.join(""));
+        try{
+            return  eval(this._operation.join(""));
+        }catch(e){
+            //em caso de erro na execucao do calculo, o catch para o processo e mostra erro
+            setTimeout(() => {
+                this.setError();
+            }, 1);
+        }
        
     }
-
+    //cria a inteligencia para realizacao de novos calculos e validacao de quantidada de numeros passados
     calc(){
         let last = '';
 
@@ -120,20 +242,21 @@ class CalcController{
             this._operation = [firstItem, this._lastOperator, this._lastNumber];
 
         }
-        console.log('ultimo num ' + this._lastNumber)
-        console.log('ultimo oper ' + this._lastOperator)
-
+        
         if(this._operation.length > 3){
             //retira o ultimo digito para realizar calculo em pares 
             last = this._operation.pop();
             this._lastNumber = this.getResult();
 
         }else if(this._operation.length == 3){
-            
+        
             this._lastNumber = this.getResult(false);
 
         }
         
+        console.log('ultimo num ' + this._lastNumber)
+        console.log('ultimo oper ' + this._lastOperator)
+
         let result = this.getResult();
 
         if (last == '%'){
@@ -150,20 +273,22 @@ class CalcController{
         console.log(this._operation);
         this.setLastNumberToDisplay();
     }
-
+    //envia o ultimo resultado do array para o display
     setLastNumberToDisplay(){
 
         let lastNumber = this.getLastItem(false);
 
-        //caso o valor seja undefined ele troca por 0
+        //caso o valor seja undefined ele troca por 0 o ! eh usado para not no javascript
         if(!lastNumber) lastNumber = 0
 
         this.displayCalc = lastNumber
 
     }
-
+    //add ponto
     addDot(){
-        let lastOperation = this.getLastOperation
+        let lastOperation = this.getLastOperation();
+        //sai do metodo caso o _operation ja tenha um ponto(.)
+        if (typeof lastOperation === 'string' && lastOperation.split('').indexOf('.') > -1 ) return;
 
         if (this.isOperation(lastOperation) || !lastOperation){
             this.pushOperation('0.');
@@ -173,7 +298,7 @@ class CalcController{
 
         this.setLastNumberToDisplay();
     }
-
+    //valida se o valor informado eh um numero ou uma operacao 
     addOperation(value){
 
         if(isNaN(this.getLastOperation())){
@@ -194,7 +319,7 @@ class CalcController{
 
             }else{
                 let newValue = this.getLastOperation().toString() + value.toString();     
-                this.setLastOperation(parseFloat(newValue));
+                this.setLastOperation(newValue);
 
                 this.setLastNumberToDisplay();
 
@@ -204,13 +329,16 @@ class CalcController{
         }
         
     }
-
+    //mostra erro
     setError(){
 
         this.displayCalc = "ERROR";
     }
-
+    //add eventos de HTML
     execBtn(value){
+        //executando audio
+        this.playAudio();
+
         //switch retorna as operacoes que devem ser calculadas
         switch(value){  
 
@@ -265,7 +393,7 @@ class CalcController{
 
     }
 
-
+    //esclarece quais eventos serao utilizado para capturar os valores para calculo
     initButtonsEvents(){
         let buttons = document.querySelectorAll("#buttons > g, #parts > g");
 
@@ -287,7 +415,7 @@ class CalcController{
 
         });
     }
-
+    //mostra a data e hora no display
     setDisplayDateTime(){
         //metodo usa a funcao nativa Date para passar a data atual
         this.displayDate = this.currenteDate.toLocaleDateString(this._locale, {
@@ -299,9 +427,8 @@ class CalcController{
     }
 
     //get e set sao utilizados para caputurar e mostrar informacoes da tela do usuario
-
     get displayTime(){
-        //metodo usa a funcao nativa Date para passar a hora atual
+        
         return this._timeEl.innerHTML;
     }
     
@@ -322,6 +449,12 @@ class CalcController{
     }
 
     set displayCalc(value){
+        
+        if(value.toString().length > 10){
+            this.setError();
+            return false;
+        }
+
         return this._displayCalcEl.innerHTML = value;
     }
 
